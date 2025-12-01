@@ -35,8 +35,8 @@ impl FromStr for Rotation {
     }
 }
 
-fn crack_password(rotations: &[Rotation]) -> usize {
-    let mut zero_count = 0usize;
+fn part1(rotations: &[Rotation]) -> usize {
+    let mut count = 0usize;
     let mut dial = 50usize;
 
     for rotation in rotations {
@@ -58,11 +58,34 @@ fn crack_password(rotations: &[Rotation]) -> usize {
         }
 
         if dial == 0 {
-            zero_count += 1;
+            count += 1;
         }
     }
 
-    zero_count
+    count
+}
+
+#[allow(clippy::cast_possible_wrap, clippy::cast_sign_loss)]
+fn part2(rotations: &[Rotation]) -> usize {
+    let mut count = 0usize;
+    let mut dial = 50isize;
+
+    for rotation in rotations {
+        let old = dial;
+
+        match *rotation {
+            Rotation::Left(dist) => dial -= dist as isize,
+            Rotation::Right(dist) => dial += dist as isize,
+        }
+
+        count += if dial > old {
+            dial.div_euclid(100) - old.div_euclid(100)
+        } else {
+            (old - 1).div_euclid(100) - (dial - 1).div_euclid(100)
+        } as usize;
+    }
+
+    count
 }
 
 fn main() -> Result<()> {
@@ -76,9 +99,11 @@ fn main() -> Result<()> {
         .map(|line| line.parse::<Rotation>())
         .collect::<Result<Vec<_>>>()?;
 
-    let password = self::crack_password(&rotations);
+    let password1 = self::part1(&rotations);
+    let password2 = self::part2(&rotations);
 
-    println!("Part 1: {password}");
+    println!("Part 1: {password1}");
+    println!("Part 2: {password2}");
 
     Ok(())
 }
