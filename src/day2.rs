@@ -48,10 +48,28 @@ impl IdRange {
 
         invalid_ids
     }
+
+    fn invalid_ids2(&self) -> Vec<usize> {
+        let mut invalid_ids = Vec::new();
+
+        for id in self.range.clone() {
+            let str = id.to_string();
+            let doubled = format!("{str}{str}");
+            if doubled[1..doubled.len() - 1].contains(str.as_str()) {
+                invalid_ids.push(id);
+            }
+        }
+
+        invalid_ids
+    }
 }
 
 fn part1(ids: &[IdRange]) -> usize {
     ids.iter().flat_map(IdRange::invalid_ids).sum()
+}
+
+fn part2(ids: &[IdRange]) -> usize {
+    ids.iter().flat_map(IdRange::invalid_ids2).sum()
 }
 
 fn main() -> Result<()> {
@@ -61,10 +79,13 @@ fn main() -> Result<()> {
         .collect::<Result<Vec<_>>>()?;
 
     let part1 = self::part1(&ids);
+    let part2 = self::part2(&ids);
 
     println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     assert_eq!(part1, 18_952_700_150);
+    assert_eq!(part2, 28_858_486_244);
 
     Ok(())
 }
