@@ -105,5 +105,8 @@ fn main() -> Result<()> {
     println!("Part 1: {password1}");
     println!("Part 2: {password2}");
 
+    assert_eq!(password1, 1120);
+    assert_eq!(password2, 6554);
+
     Ok(())
 }
