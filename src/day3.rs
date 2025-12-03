@@ -26,8 +26,8 @@ impl FromStr for BatteryBank {
             .collect::<Option<Vec<_>>>()
             .ok_or_else(|| anyhow!("invalid joltage rating"))?;
 
-        if joltages.len() < Self::K {
-            return Err(anyhow!(format!("bank size less than {}", Self::K)));
+        if joltages.len() < 12 {
+            return Err(anyhow!("bank size less than 12"));
         }
 
         #[allow(clippy::cast_possible_truncation)]
@@ -38,8 +38,6 @@ impl FromStr for BatteryBank {
 }
 
 impl BatteryBank {
-    const K: usize = 2;
-
     fn joltage_max(&self) -> u8 {
         fn dfs(joltages: &[u8], idx: usize, subset: &mut Vec<u8>, max: &mut u8) {
             if subset.len() == 2 {
@@ -58,9 +56,36 @@ impl BatteryBank {
             dfs(joltages, idx + 1, subset, max);
         }
 
-        let mut subset = Vec::with_capacity(Self::K);
+        let mut subset = Vec::with_capacity(2 + 1);
         let mut max = 0;
+
         dfs(&self.joltages, 0, &mut subset, &mut max);
+
+        max
+    }
+
+    fn joltage_max2(&self) -> u64 {
+        let to_remove = self.joltages.len() - 12;
+
+        let mut removed = 0usize;
+        let mut stack = Vec::with_capacity(12);
+
+        for &joltage in &self.joltages {
+            while removed < to_remove && stack.last().is_some_and(|&last| last < joltage) {
+                removed += 1;
+                stack.pop();
+            }
+
+            stack.push(joltage);
+        }
+
+        stack.truncate(12);
+
+        let mut max = 0;
+        for joltage in stack {
+            max = (10 * max) + u64::from(joltage);
+        }
+
         max
     }
 }
@@ -69,6 +94,14 @@ fn part1(banks: &[BatteryBank]) -> u64 {
     banks
         .iter()
         .map(BatteryBank::joltage_max)
+        .map(u64::from)
+        .sum()
+}
+
+fn part2(banks: &[BatteryBank]) -> u64 {
+    banks
+        .iter()
+        .map(BatteryBank::joltage_max2)
         .map(u64::from)
         .sum()
 }
@@ -82,10 +115,13 @@ fn main() -> Result<()> {
         .collect::<Result<Vec<_>>>()?;
 
     let part1 = self::part1(&banks);
+    let part2 = self::part2(&banks);
 
     println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     assert_eq!(part1, 17_346);
+    assert_eq!(part2, 172_981_362_045_136);
 
     Ok(())
 }
