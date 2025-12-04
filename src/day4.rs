@@ -27,7 +27,7 @@ impl Grid {
     }
 
     fn neighbors(&self, i: usize, j: usize) -> impl Iterator<Item = (usize, usize)> {
-        const DIRS: &[(isize, isize)] = &[
+        const DELTAS: &[(isize, isize)] = &[
             (1, 0),
             (1, 1),
             (0, 1),
@@ -40,15 +40,15 @@ impl Grid {
 
         let (i_len, j_len) = self.len();
 
-        DIRS.iter().filter_map(move |&(i_delta, j_delta)| {
+        DELTAS.iter().filter_map(move |&(i_delta, j_delta)| {
             let i_new = i.checked_add_signed(i_delta)?;
             let j_new = j.checked_add_signed(j_delta)?;
             (i_new < i_len && j_new < j_len).then_some((i_new, j_new))
         })
     }
 
-    fn accessible(&self) -> usize {
-        let mut accessible = 0;
+    fn accessible(&self) -> Option<Vec<(usize, usize)>> {
+        let mut accessible = vec![];
 
         let (i_len, j_len) = self.len();
 
@@ -64,22 +64,41 @@ impl Grid {
                     }
 
                     if adj < 4 {
-                        accessible += 1;
+                        accessible.push((i, j));
                     }
                 }
             }
         }
 
-        accessible
+        (!accessible.is_empty()).then_some(accessible)
+    }
+
+    fn remove(&mut self, i: usize, j: usize) {
+        self.0[i][j] = 'x';
     }
 }
 
 fn part1(grid: &Grid) -> usize {
     grid.accessible()
+        .map(|accessible| accessible.len())
+        .unwrap_or_default()
+}
+
+fn part2(grid: &mut Grid) -> usize {
+    let mut removed = 0;
+
+    while let Some(accessible) = grid.accessible() {
+        for (i, j) in accessible {
+            grid.remove(i, j);
+            removed += 1;
+        }
+    }
+
+    removed
 }
 
 fn main() -> Result<()> {
-    let grid = Grid(
+    let mut grid = Grid(
         BufReader::new(File::open("in/day4.txt")?)
             .lines()
             .collect::<Result<Vec<_>, _>>()?
@@ -89,10 +108,13 @@ fn main() -> Result<()> {
     );
 
     let part1 = self::part1(&grid);
+    let part2 = self::part2(&mut grid);
 
     println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     assert_eq!(part1, 1_560);
+    assert_eq!(part2, 9_609);
 
     Ok(())
 }
