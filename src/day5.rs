@@ -100,6 +100,16 @@ fn part1(fresh: &[FreshIngredient], avail: &[Ingredient]) -> usize {
     fresh_count
 }
 
+fn part2(fresh: &[FreshIngredient]) -> usize {
+    let mut fresh_count = 0;
+
+    for fresh in fresh {
+        fresh_count += fresh.range.end().id - fresh.range.start().id + 1;
+    }
+
+    fresh_count
+}
+
 fn main() -> Result<()> {
     let input = fs::read_to_string("in/day5.txt")?;
     let mut split = input.split("\n\n");
@@ -120,10 +130,13 @@ fn main() -> Result<()> {
     let fresh = self::merge_fresh_ranges(fresh);
 
     let part1 = self::part1(&fresh, &avail);
+    let part2 = self::part2(&fresh);
 
     println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     assert_eq!(part1, 674);
+    assert_eq!(part2, 352_509_891_817_881);
 
     Ok(())
 }
