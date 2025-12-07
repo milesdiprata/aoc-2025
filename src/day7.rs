@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+use std::collections::HashSet;
 use std::fmt::Debug;
 use std::fmt::Write;
 use std::fs;
@@ -12,7 +14,6 @@ enum Space {
     Start,
     Empty,
     Splitter,
-    Beam,
 }
 
 struct Manifold {
@@ -26,7 +27,6 @@ impl Debug for Space {
             Self::Start => f.write_char('S'),
             Self::Empty => f.write_char('.'),
             Self::Splitter => f.write_char('^'),
-            Self::Beam => f.write_char('|'),
         }
     }
 }
@@ -87,48 +87,117 @@ impl Space {
 }
 
 impl Manifold {
+    fn len(&self) -> (usize, usize) {
+        (
+            self.grid.len(),
+            self.grid.first().map(Vec::len).unwrap_or_default(),
+        )
+    }
+
+    fn neighbors(&self, (row, col): (usize, usize)) -> Vec<(usize, usize)> {
+        let (row_len, col_len) = self.len();
+
+        let mut neighbors = vec![];
+
+        match self.get((row, col)) {
+            Some(Space::Start | Space::Empty) => {
+                let row_new = row.checked_add(1);
+                if row_new.is_some_and(|row_new| row_new < row_len) {
+                    neighbors.push((row_new.unwrap(), col));
+                }
+            }
+            Some(Space::Splitter) => {
+                let row_new = row.checked_add(1);
+                let col_left = col.checked_sub(1);
+                let col_right = col.checked_add(1);
+
+                if row_new.is_some_and(|row_new| row_new < row_len) {
+                    if let Some(col_left) = col_left {
+                        neighbors.push((row_new.unwrap(), col_left));
+                    }
+
+                    if col_right.is_some_and(|col_right| col_right < col_len) {
+                        neighbors.push((row_new.unwrap(), col_right.unwrap()));
+                    }
+                }
+            }
+            None => (),
+        }
+
+        neighbors
+    }
+
     fn get(&self, (row, col): (usize, usize)) -> Option<Space> {
         self.grid.get(row).and_then(|row| row.get(col)).copied()
     }
-
-    fn get_mut(&mut self, (row, col): (usize, usize)) -> Option<&mut Space> {
-        self.grid.get_mut(row).and_then(|row| row.get_mut(col))
-    }
 }
 
-fn part1(manifold: &mut Manifold) -> usize {
+fn part1(manifold: &Manifold) -> usize {
     let mut splits = 0;
-    let mut beams = vec![manifold.start];
+    let mut stack = vec![manifold.start];
+    let mut visited = HashSet::from([manifold.start]);
 
-    while let Some((row, col)) = beams.pop() {
-        match manifold.get((row, col)) {
-            Some(Space::Start | Space::Empty) => beams.push((row.saturating_add(1), col)),
-            Some(Space::Splitter) => {
-                splits += 1;
-
-                beams.push((row.saturating_add(1), col.saturating_sub(1)));
-                beams.push((row.saturating_add(1), col.saturating_add(1)));
-            }
-            Some(Space::Beam) | None => continue,
+    while let Some((row, col)) = stack.pop() {
+        if manifold.get((row, col)) == Some(Space::Splitter) {
+            splits += 1;
         }
 
-        if let Some(space) = manifold.get_mut((row, col)) {
-            *space = Space::Beam;
+        for (row_next, col_next) in manifold.neighbors((row, col)) {
+            if visited.insert((row_next, col_next)) {
+                stack.push((row_next, col_next));
+            }
         }
     }
 
     splits
 }
 
+fn part2(manifold: &Manifold) -> usize {
+    fn dfs(
+        manifold: &Manifold,
+        visited: &mut HashSet<(usize, usize)>,
+        memo: &mut HashMap<(usize, usize), usize>,
+        (row, col): (usize, usize),
+    ) -> usize {
+        if row == manifold.len().0.saturating_sub(1) {
+            return 1;
+        }
+
+        if let Some(&timeline) = memo.get(&(row, col)) {
+            return timeline;
+        }
+
+        let mut timeline = 0;
+        for (row_next, col_next) in manifold.neighbors((row, col)) {
+            if visited.insert((row_next, col_next)) {
+                timeline += dfs(manifold, visited, memo, (row_next, col_next));
+                visited.remove(&(row_next, col_next));
+            }
+        }
+
+        memo.insert((row, col), timeline);
+
+        timeline
+    }
+
+    let mut visited = HashSet::from([manifold.start]);
+    let mut memo = HashMap::new();
+
+    dfs(manifold, &mut visited, &mut memo, manifold.start)
+}
+
 fn main() -> Result<()> {
     let input = fs::read_to_string("in/day7.txt")?;
-    let mut manifold = Manifold::from_str(&input)?;
+    let manifold = Manifold::from_str(&input)?;
 
-    let part1 = self::part1(&mut manifold);
+    let part1 = self::part1(&manifold);
+    let part2 = self::part2(&manifold);
 
     println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     assert_eq!(part1, 1_649);
+    assert_eq!(part2, 16_937_871_060_075);
 
     Ok(())
 }
