@@ -99,11 +99,7 @@ fn part1(banks: &[BatteryBank]) -> u64 {
 }
 
 fn part2(banks: &[BatteryBank]) -> u64 {
-    banks
-        .iter()
-        .map(BatteryBank::joltage_max2)
-        .map(u64::from)
-        .sum()
+    banks.iter().map(BatteryBank::joltage_max2).sum()
 }
 
 fn main() -> Result<()> {
