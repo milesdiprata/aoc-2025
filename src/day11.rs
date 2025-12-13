@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::collections::HashSet;
 use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
@@ -37,39 +36,63 @@ impl FromStr for Device {
     }
 }
 
-fn part1(devices: &[Device]) -> usize {
-    fn dfs<'a>(
-        node: &'a str,
-        target: &'a str,
-        adj_list: &HashMap<&'a str, &'a Vec<String>>,
-        visited: &mut HashSet<&'a str>,
-    ) -> usize {
-        if visited.contains(&node) {
-            return 0;
-        }
-
-        if node == target {
-            return 1;
-        }
-
-        let mut count = 0;
-        visited.insert(node);
-        for neighbor in adj_list[node] {
-            count += dfs(neighbor, target, adj_list, visited);
-        }
-        visited.remove(node);
-
-        count
+fn dfs<'a>(
+    node: &'a str,
+    target: &'a str,
+    adj_list: &HashMap<&'a str, &'a Vec<String>>,
+    memo: &mut HashMap<(&'a str, &'a str), usize>,
+) -> usize {
+    if node == target {
+        return 1;
     }
 
+    if let Some(&result) = memo.get(&(node, target)) {
+        return result;
+    }
+
+    let mut count = 0;
+
+    if let Some(&neighbors) = adj_list.get(node) {
+        for neighbor in neighbors {
+            count += dfs(neighbor, target, adj_list, memo);
+        }
+    }
+
+    memo.insert((node, target), count);
+
+    count
+}
+
+fn part1(devices: &[Device]) -> usize {
     let mut adj_list = HashMap::with_capacity(devices.len());
-    let mut visited = HashSet::with_capacity(devices.len());
+    let mut memo = HashMap::new();
 
     for device in devices {
         adj_list.insert(device.name.as_str(), &device.outputs);
     }
 
-    dfs("you", "out", &adj_list, &mut visited)
+    self::dfs("you", "out", &adj_list, &mut memo)
+}
+
+fn part2(devices: &[Device]) -> usize {
+    let mut adj_list = HashMap::with_capacity(devices.len());
+    let mut memo = HashMap::new();
+
+    for device in devices {
+        adj_list.insert(device.name.as_str(), &device.outputs);
+    }
+
+    let paths_fft_first = self::dfs("svr", "fft", &adj_list, &mut memo)
+        * self::dfs("fft", "dac", &adj_list, &mut memo)
+        * self::dfs("dac", "out", &adj_list, &mut memo);
+
+    memo.clear();
+
+    let paths_dac_first = self::dfs("svr", "dac", &adj_list, &mut memo)
+        * self::dfs("dac", "fft", &adj_list, &mut memo)
+        * self::dfs("fft", "out", &adj_list, &mut memo);
+
+    paths_fft_first + paths_dac_first
 }
 
 fn main() -> Result<()> {
@@ -81,10 +104,13 @@ fn main() -> Result<()> {
         .collect::<Result<Vec<_>>>()?;
 
     let part1 = self::part1(&devices);
+    let part2 = self::part2(&devices);
 
     println!("Part 1: {part1}");
+    println!("Part 2: {part2}");
 
     assert_eq!(part1, 796);
+    assert_eq!(part2, 294_053_029_111_296);
 
     Ok(())
 }
