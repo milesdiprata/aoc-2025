@@ -6,9 +6,11 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.100"
 geo = { version = "0.32.0", optional = true }
+z3 = { version = "0.19.6", optional = true }
 
 [features]
 day9 = ["dep:geo"]
+day10 = ["dep:z3"]
 
 [profile.release]
 opt-level = 3
@@ -54,3 +56,4 @@ required-features = ["day9"]
 [[bin]]
 name = "day10"
 path = "src/day10.rs"
+required-features = ["day10"]
