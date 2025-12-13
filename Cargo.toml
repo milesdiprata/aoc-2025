@@ -57,3 +57,7 @@ required-features = ["day9"]
 name = "day10"
 path = "src/day10.rs"
 required-features = ["day10"]
+
+[[bin]]
+name = "day11"
+path = "src/day11.rs"
